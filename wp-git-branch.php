@@ -1,10 +1,10 @@
 <?php
 /**
  * Plugin Name:    WP Git Branch
- * Plugin URI:     http://github.com/josephfusco/wp-git-branch/
- * Description:    Show active theme git branch and commit hash in the toolbar.
- * Version:        1.1.2
- * Author:         Joseph Fusco
+ * Plugin URI:     http://github.com/certainlyakey/wp-git-branch/
+ * Description:    Show active git branch and commit hash in the toolbar. Looks for .git in theme, root, git directories (the latter being one level up from WP root)
+ * Version:        1.1.3
+ * Author:         Joseph Fusco, Aleksandr Beliaev
  * Author URI:     http://josephfus.co/
  * License:        GPLv2 or later
  * License URI:    http://www.gnu.org/licenses/gpl-2.0.html
@@ -56,22 +56,41 @@ class WP_Git_Branch {
 	}
 
 	private function get_git_info() {
-		$directory = get_stylesheet_directory();
-		$name      = wp_get_theme();
-		$git       = $directory . '/.git';
-		$git_index = $git . '/index';
-		$git_rev   = $this->git_rev( $directory );
+		$name       = get_bloginfo();
+		$git_index  = '.git/index';
+		$path_index = $this->git_path_index();
+		$path       = str_replace( $git_index, '', $this->git_path_index() );
+		$git_rev    = $this->git_rev( $path );
 
-		if ( file_exists( $git_index ) ) {
+		if ( $path_index ) {
 			// If commits are present
 			return $name . ': <strong>' . esc_html( $git_rev ) . '</strong>';
-		} elseif ( file_exists( $git ) ) {
+		} elseif ( file_exists( $path ) ) {
 			// If git exists with no commits
 			return $name . ': ' . __( 'no commit history', 'wp-git-branch' );
 		} else {
 			// If git is not present
 			return $name . ': ' . __( 'no git found', 'wp-git-branch' );
 		}
+	}
+
+	private function git_path_index() {
+		$git_index = '.git/index';
+		$path = '';
+
+		// check in WP root
+		if ( file_exists( get_home_path() . $git_index ) ) {
+			$path = get_home_path() . $git_index;
+		}
+		// check in theme dir
+		if ( file_exists( get_stylesheet_directory() . '/' . $git_index ) ) {
+			$path = get_stylesheet_directory() . $git_index;
+		}
+		// check in a folder named 'git' outside of root
+		if ( file_exists( get_home_path() . '../git/' . $git_index ) ) {
+			$path = get_home_path() . '../git/' . $git_index;
+		}
+		return $path;
 	}
 
 	private function git_rev( $path ) {
